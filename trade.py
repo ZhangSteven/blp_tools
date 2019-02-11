@@ -36,11 +36,8 @@ def numTrades(file, portfolio):
 
 	nodes = transactions(file)
 	return (numElements(filter(trade, nodes)) \
-			, numElements(filter(forPortfolio(portfolio, '{http://www.advent.com/SchemaRevLevel758/Geneva}')
-								, filter(trade, nodes)
-								)
-						 )
-			)
+			, numElements(filter(forPortfolio(portfolio), filter(trade, nodes)))
+		   )
 
 
 
@@ -72,6 +69,55 @@ def transactions(file):
 
 
 
+def tagWithoutNamespace(tag):
+	"""
+	[String] tag => [String] tag without XML name space
+
+	When extracted, an XML node's tag may looks like:
+
+	{http://www.advent.com/SchemaRevLevel758/Geneva}Buy_New
+
+	Where {http://xxx} is the name space of the XML file, "Buy_New" is the
+	tag.
+
+	The function removes the name space prefix and returns the tag after it.
+	"""
+	m = re.match('\{.*\}(.*)', tag)
+	if m != None:
+		return m.group(1)
+	else:
+		return tag
+
+
+
+def findWithoutNamespace(parentNode, tag):
+	"""
+	[ET node] node, [String] tag => [ET node] sub node with the tag
+
+	Find the first child node whose tag after striping the name space matches
+	the input tag.
+	"""
+	def head(it):
+		"""
+		[Iterable] it => [Object] first element in it, if empty return None
+		"""
+		for x in it:
+			return x
+
+		return None
+
+
+	def rightNode(node):
+		if tagWithoutNamespace(node.tag) == tag:
+			return True
+		else:
+			return False
+
+
+	return head(filter(rightNode, parentNode))
+
+
+
 
 def trade(transaction):
 	""" 
@@ -84,27 +130,22 @@ def trade(transaction):
 	Where {http://xxx} is the name space of the XML file, "Buy_New" is the
 	transaction type.
 	"""
-	m = re.match('\{.*\}(.*)', transaction.tag)
-	if m != None:
-		tag = m.group(1)
-	else:
-		tag = transaction.tag
-
 	# print(tag)
-	if tag in ['Buy_New', 'Sell_New', 'SellShort_New', 'CoverShort_New']:
+	if tagWithoutNamespace(transaction.tag) in ['Buy_New', 'Sell_New', \
+												'SellShort_New', 'CoverShort_New']:
 		return True
 	else:
 		return False
 
 
 
-def forPortfolio(portId, xmlns):
+def forPortfolio(portId):
 	"""
-	[String] portfolio id => [Function] a function that checks whether a 
-							 transaction has the portfolio id.
+	[String] portId => [Function] a function that checks whether a 
+						transaction has the portfolio id.
 
-	This may look a bit weird, but the returned function will be used to
-	filter transactions based on portfolio id. 
+	The returned function will be used to filter transactions based on portfolio 
+	id. 
 	"""
 	def _forPortfolio(transaction):
 		"""
@@ -119,7 +160,7 @@ def forPortfolio(portId, xmlns):
 
 		We need to find out whether the "Portfolio" matches what we look for.
 		"""
-		portfolio = transaction.find(xmlns + 'Portfolio')
+		portfolio = findWithoutNamespace(transaction, 'Portfolio')
 		if portfolio != None and portfolio.text.startswith(portId):
 			return True
 		else:
