@@ -27,13 +27,13 @@ def tradeTable(files, portfolio):
 
 	month: (# trades, # trades of certain portfolio), e.g.
 
-	'201801': (5588, 123)
-	'201802': (6789, 456)
+	'2018-01': (5588, 123)
+	'2018-02': (6789, 456)
 
 	"""
 	def buildTable(result, tradeInfo):
 		date, nTrades, nTradesForPortfolio = tradeInfo
-		month = date.strftime('%Y%m')
+		month = date.strftime('%Y-%m')
 		if not month in result:
 			result[month] = (0, 0)	# create new entry
 
@@ -122,6 +122,7 @@ def transactions(file):
 		</TransactionRecords>
 	</GenevaLoader>
 	"""
+	logger.info('transactions(): process file {0}'.format(file))
 	tree = ET.parse(file)
 	root = tree.getroot()
 	return root[0]	# the <TransactionRecords> element
@@ -236,8 +237,8 @@ def toList(tradeTable):
 
 	Where tradeTable is a dictonary like:
 
-	'201801': (5588, 123)
-	'201802': (6789, 456)
+	'2018-01': (5588, 123)
+	'2018-02': (6789, 456)
 	"""
 	return [(key, value[0], value[1]) for key, value in tradeTable.items()]
 
