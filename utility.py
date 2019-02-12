@@ -40,8 +40,3 @@ def getInputDirectory():
 	global config
 	return config['input']['directory']
 
-
-
-def getPortfolioId():
-	global config
-	return config['input']['portfolio']
