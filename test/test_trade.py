@@ -40,5 +40,5 @@ class TestTrade(unittest2.TestCase):
         file3 = join(getCurrentDirectory(), 'samples', 'TransToGeneva20190405.xml')
         table = tradeTable([file1, file2, file3], '40006')
         self.assertEqual(len(table), 2)
-        self.assertEqual(table['201902'], (14, 7))  # (6, 3) + (8, 4)
-        self.assertEqual(table['201904'], (8, 4))
+        self.assertEqual(table['2019-02'], (14, 7))  # (6, 3) + (8, 4)
+        self.assertEqual(table['2019-04'], (8, 4))
