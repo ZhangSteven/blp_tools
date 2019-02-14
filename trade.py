@@ -11,7 +11,7 @@
 import xml.etree.ElementTree as ET
 from os.path import join
 from datetime import datetime
-from functools import reduce
+from functools import reduce, partial
 from utils.file import stripPath, getFiles
 from utils.utility import writeCsv
 from blp_tools.utility import getInputDirectory
@@ -42,28 +42,41 @@ def tradeTable(files, portfolio):
 		return result
 
 
-	return reduce(buildTable, map(tradeInfo(portfolio), files), {})
+	return reduce(buildTable, map(partial(tradeInfo, portfolio), files), {})
 
 
 
-def tradeInfo(portfolio):
+# def tradeInfo(portfolio):
+# 	"""
+# 	[String] portfolio => [Function] a function that reads a file and returns
+# 		a tuple (datetime, int, int) consisting of the following:
+
+# 		[datetime] datetime of the trade file,
+# 		[int] number of trades in total,
+# 		[int] number of trades for that portfolio
+# 	"""
+# 	def _tradeInfo(file):
+# 		"""
+# 		The actual function that does the mapping
+# 		"""
+# 		nTrades, nTradesForPortfolio = numTrades(file, portfolio)
+# 		return (dateFromFilename(file), nTrades, nTradesForPortfolio)
+
+
+# 	return _tradeInfo
+
+
+
+def tradeInfo(portfolio, file):
 	"""
-	[String] portfolio => [Function] a function that reads a file and returns
-		a tuple (datetime, int, int) consisting of the following:
+	[String] portfolio => [Tuple] (datetime, int, int) consisting of:
 
 		[datetime] datetime of the trade file,
 		[int] number of trades in total,
 		[int] number of trades for that portfolio
 	"""
-	def _tradeInfo(file):
-		"""
-		The actual function that does the mapping
-		"""
-		nTrades, nTradesForPortfolio = numTrades(file, portfolio)
-		return (dateFromFilename(file), nTrades, nTradesForPortfolio)
-
-
-	return _tradeInfo
+	nTrades, nTradesForPortfolio = numTrades(file, portfolio)
+	return (dateFromFilename(file), nTrades, nTradesForPortfolio)
 
 
 
@@ -95,7 +108,8 @@ def numTrades(file, portfolio):
 
 	nodes = transactions(file)
 	return (numElements(filter(trade, nodes)) \
-			, numElements(filter(forPortfolio(portfolio), filter(trade, nodes)))
+			, numElements(filter(partial(forPortfolio, portfolio) \
+								 , filter(trade, nodes)))
 		   )
 
 
@@ -199,35 +213,54 @@ def trade(transaction):
 
 
 
-def forPortfolio(portId):
-	"""
-	[String] portId => [Function] a function that checks whether a 
-						transaction has the portfolio id.
+# def forPortfolio(portId):
+# 	"""
+# 	[String] portId => [Function] a function that checks whether a 
+# 						transaction has the portfolio id.
 
-	The returned function will be used to filter transactions based on portfolio 
-	id. 
-	"""
-	def _forPortfolio(transaction):
-		"""
-		[ET node] transaction => [Bool] yesno
+# 	The returned function will be used to filter transactions based on portfolio 
+# 	id. 
+# 	"""
+# 	def _forPortfolio(transaction):
+# 		"""
+# 		[ET node] transaction => [Bool] yesno
 
-		the transaction looks like follows:
+# 		the transaction looks like follows:
+
+# 		<SellShort_New>
+# 			<Portfolio>40006-C</Portfolio>
+# 			...
+# 		</SellShort_New>
+
+# 		We need to find out whether the "Portfolio" matches what we look for.
+# 		"""
+# 		portfolio = findWithoutNamespace(transaction, 'Portfolio')
+# 		if portfolio != None and portfolio.text.startswith(portId):
+# 			return True
+# 		else:
+# 			return False
+
+
+# 	return _forPortfolio
+
+
+
+def forPortfolio(portId, transaction):
+	"""
+	[String] portId => [Bool] whether a transaction has the portfolio id.
+
+	A transaction with "Portfolio" sub element looks like:
 
 		<SellShort_New>
 			<Portfolio>40006-C</Portfolio>
 			...
 		</SellShort_New>
-
-		We need to find out whether the "Portfolio" matches what we look for.
-		"""
-		portfolio = findWithoutNamespace(transaction, 'Portfolio')
-		if portfolio != None and portfolio.text.startswith(portId):
-			return True
-		else:
-			return False
-
-
-	return _forPortfolio
+	"""
+	portfolio = findWithoutNamespace(transaction, 'Portfolio')
+	if portfolio != None and portfolio.text.startswith(portId):
+		return True
+	else:
+		return False
 
 
 

@@ -28,9 +28,8 @@ class TestTrade(unittest2.TestCase):
 
 
     def testTradeInfo(self):
-        func = tradeInfo('40006')
         inputFile = join(getCurrentDirectory(), 'samples', 'TransToGeneva20190207.xml')
-        self.assertEqual(func(inputFile), (datetime(2019,2,7), 8, 4))
+        self.assertEqual(tradeInfo('40006', inputFile), (datetime(2019,2,7), 8, 4))
 
 
 
