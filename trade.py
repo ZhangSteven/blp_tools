@@ -14,6 +14,8 @@ from datetime import datetime
 from functools import reduce, partial
 from utils.file import stripPath, getFiles
 from utils.utility import writeCsv
+from utils.xml4me import findWithoutNamespace, stripNamespace
+from utils.iter import numElements
 from blp_tools.utility import getInputDirectory
 import logging
 import re
@@ -43,27 +45,6 @@ def tradeTable(files, portfolio):
 
 
 	return reduce(buildTable, map(partial(tradeInfo, portfolio), files), {})
-
-
-
-# def tradeInfo(portfolio):
-# 	"""
-# 	[String] portfolio => [Function] a function that reads a file and returns
-# 		a tuple (datetime, int, int) consisting of the following:
-
-# 		[datetime] datetime of the trade file,
-# 		[int] number of trades in total,
-# 		[int] number of trades for that portfolio
-# 	"""
-# 	def _tradeInfo(file):
-# 		"""
-# 		The actual function that does the mapping
-# 		"""
-# 		nTrades, nTradesForPortfolio = numTrades(file, portfolio)
-# 		return (dateFromFilename(file), nTrades, nTradesForPortfolio)
-
-
-# 	return _tradeInfo
 
 
 
@@ -99,13 +80,6 @@ def numTrades(file, portfolio):
 	Return the total number of trades in that file if portfolio is "None",
 	otherwise the number of trades for that particular portfolio.
 	"""
-	def numElements(it):
-		"""
-		Count the number of elements in an interable (it).
-		"""
-		return sum([1 for _ in it])
-
-
 	nodes = transactions(file)
 	return (numElements(filter(trade, nodes)) \
 			, numElements(filter(partial(forPortfolio, portfolio) \
@@ -143,56 +117,6 @@ def transactions(file):
 
 
 
-def tagWithoutNamespace(tag):
-	"""
-	[String] tag => [String] tag without XML name space
-
-	When extracted, an XML node's tag may looks like:
-
-	{http://www.advent.com/SchemaRevLevel758/Geneva}Buy_New
-
-	Where {http://xxx} is the name space of the XML file, "Buy_New" is the
-	tag.
-
-	The function removes the name space prefix and returns the tag after it.
-	"""
-	m = re.match('\{.*\}(.*)', tag)
-	if m != None:
-		return m.group(1)
-	else:
-		return tag
-
-
-
-def findWithoutNamespace(parentNode, tag):
-	"""
-	[ET node] node, [String] tag => [ET node] sub node with the tag
-
-	Find the first child node whose tag after striping the name space matches
-	the input tag.
-	"""
-	def head(it):
-		"""
-		[Iterable] it => [Object] first element in it, if empty return None
-		"""
-		for x in it:
-			return x
-
-		return None
-
-
-	def rightNode(node):
-		if tagWithoutNamespace(node.tag) == tag:
-			return True
-		else:
-			return False
-
-
-	return head(filter(rightNode, parentNode))
-
-
-
-
 def trade(transaction):
 	""" 
 	Tell whether a transaction node is a trade.
@@ -205,43 +129,11 @@ def trade(transaction):
 	transaction type.
 	"""
 	# print(tag)
-	if tagWithoutNamespace(transaction.tag) in ['Buy_New', 'Sell_New', \
-												'SellShort_New', 'CoverShort_New']:
+	if stripNamespace(transaction.tag) in [ 'Buy_New', 'Sell_New' \
+										  , 'SellShort_New', 'CoverShort_New']:
 		return True
 	else:
 		return False
-
-
-
-# def forPortfolio(portId):
-# 	"""
-# 	[String] portId => [Function] a function that checks whether a 
-# 						transaction has the portfolio id.
-
-# 	The returned function will be used to filter transactions based on portfolio 
-# 	id. 
-# 	"""
-# 	def _forPortfolio(transaction):
-# 		"""
-# 		[ET node] transaction => [Bool] yesno
-
-# 		the transaction looks like follows:
-
-# 		<SellShort_New>
-# 			<Portfolio>40006-C</Portfolio>
-# 			...
-# 		</SellShort_New>
-
-# 		We need to find out whether the "Portfolio" matches what we look for.
-# 		"""
-# 		portfolio = findWithoutNamespace(transaction, 'Portfolio')
-# 		if portfolio != None and portfolio.text.startswith(portId):
-# 			return True
-# 		else:
-# 			return False
-
-
-# 	return _forPortfolio
 
 
 
@@ -282,21 +174,13 @@ if __name__ == '__main__':
 	logging.config.fileConfig('logging.config', disable_existing_loggers=False)
 
 	"""
-	# For testing only
+	To use the program, put Bloomberg XML trade files into a folder (specified 
+	in the config file), then run:
 
-	import argparse
-	parser = argparse.ArgumentParser()
-	parser.add_argument('file', metavar='<input file>', type=str)
-	args = parser.parse_args()
-
-	print(numTrades(args.file, '40006'))
-	"""
-
-	"""
-	Put Bloomberg XML trade files into a folder (specified in the config file),
-	then run this.
+		$python trade.py
+		
 	"""
 	writeCsv('result.csv'
 			, sorted(toList(tradeTable(getFiles(getInputDirectory(), True) \
-												, '40006'))))
+									  , '40006'))))
 
