@@ -69,7 +69,7 @@ def tradeTable(files, portfolio):
 
 def tradeInfo(portfolio, file):
 	"""
-	[String] portfolio => [Tuple] (datetime, int, int) consisting of:
+	[String] portfolio, [String] file => [Tuple] (datetime, int, int):
 
 		[datetime] datetime of the trade file,
 		[int] number of trades in total,
